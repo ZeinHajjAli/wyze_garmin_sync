@@ -1,4 +1,5 @@
 #!/bin/bash
+mkdir /etc/cron.d
 touch /etc/cron.d/garmin_wyze_scheduler
 echo PATH=$PATH > /etc/cron.d/garmin_wyze_scheduler
 echo WYZE_EMAIL=$WYZE_EMAIL >> /etc/cron.d/garmin_wyze_scheduler
@@ -11,4 +12,4 @@ echo "*/10 * * * * { printf \"\%s: \" \"\$(date \"+\%F \%T\")\"; /wyze_garmin_sy
 chmod 0644 /etc/cron.d/garmin_wyze_scheduler && crontab /etc/cron.d/garmin_wyze_scheduler
 chmod 0770 /wyze_garmin_sync/scale.py
 /wyze_garmin_sync/scale.py
-cron -f
+crond -f
