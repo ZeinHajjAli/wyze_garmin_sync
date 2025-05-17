@@ -1,20 +1,15 @@
-version: "3.9"
 services:
-  wyzegarminconnect:
-    image: svanhoutte/wyzegarminconnect:latest
-    stdin_open: true # docker run -i
-    tty: true        # docker run -t
+  wyze-garmin-sync:
+    build: .
     restart: unless-stopped
-    network_mode: "host"
     environment:
-      WYZE_EMAIL: "wyze username"
-      WYZE_PASSWORD: "wyze password"
-#go their to create your key and id https://developer-api-console.wyze.com/#/apikey/view
-      WYZE_KEY_ID: "key_ID"
-      WYZE_API_KEY: "api_key"
-      Garmin_username: "garmin username"
-      Garmin_password: "garmin password"
+      WYZE_EMAIL: ${WYZE_EMAIL}
+      WYZE_PASSWORD: ${WYZE_PASSWORD}
+      WYZE_KEY_ID: ${WYZE_KEY_ID}
+      WYZE_API_KEY: ${WYZE_API_KEY}
+      GARMIN_EMAIL: ${GARMIN_EMAIL}
+      GARMIN_PASSWORD: ${GARMIN_PASSWORD}
     volumes:
       - "/etc/timezone:/etc/timezone:ro"
       - "/etc/localtime:/etc/localtime:ro"
-      - "./tokens:/wyze_garmin_sync/tokens"
+      - "./.garmin_tokens:/app/.garmin_tokens"

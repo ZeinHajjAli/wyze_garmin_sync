@@ -1,0 +1,10 @@
+[project]
+name = "wyze-garmin-sync"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "garth>=0.5.7",
+    "wyze-sdk>=2.2.0",
+]

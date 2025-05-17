@@ -6,18 +6,6 @@
   <img width="25%" src="https://user-images.githubusercontent.com/22617546/208175452-dbbff5b9-59ce-4ffc-a255-698617c94de0.jpg" />
 </p>
 
-[![Stars](https://img.shields.io/github/stars/svanhoutte/wyze_garmin_sync)](https://github.com/svanhoutte/wyze_garmin_sync/stargazers)
-[![Version](https://img.shields.io/github/v/release/svanhoutte/wyze_garmin_sync)](https://github.com/svanhoutte/wyze_garmin_sync/releases/latest)
-[![Commits Since Latest Release](https://img.shields.io/github/commits-since/svanhoutte/wyze_garmin_sync/latest)](https://github.com/svanhoutte/wyze_garmin_sync/commits/master)
-[![Latest Release Date](https://img.shields.io/github/release-date/svanhoutte/wyze_garmin_sync)](https://github.com/svanhoutte/wyze_garmin_sync/releases/latest)
-[![Open Issues](https://img.shields.io/github/issues-raw/svanhoutte/wyze_garmin_sync)](https://github.com/svanhoutte/wyze_garmin_sync/issues?q=is%3Aopen+is%3Aissue)
-[![Closed Issues](https://img.shields.io/github/issues-closed-raw/svanhoutte/wyze_garmin_sync)](https://github.com/svanhoutte/wyze_garmin_sync/issues?q=is%3Aissue+is%3Aclosed)
-
-[![PayPal](https://img.shields.io/badge/PayPal-Donate-green)](https://paypal.me/SVanhoutte79?country.x=US&locale.x=en_US)
-[![Buymeacoffee](https://badgen.net/badge/icon/buymeacoffee?icon=buymeacoffee&label)](https://www.buymeacoffee.com/sebastienv)
-
-
-
 ***
 **Sync the Wyze scale with Garmin connect v2.0.0**
 
@@ -142,5 +130,3 @@ Will run the script every 10 min to get if a new measurement has been made on th
 
     */10 * * * * path_to_script/scale.py 2>&1 | /usr/bin/logger -t garminsync
 
-***
-[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/sebastienv)
