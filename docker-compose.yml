@@ -1,7 +1,9 @@
 services:
   wyze-garmin-sync:
-    build: .
+    image: zeinhajjali/wyze-garmin-sync:1.0.0
     restart: unless-stopped
+    # stdin_open: true # docker run -i
+    # tty: true # docker run -t
     environment:
       WYZE_EMAIL: ${WYZE_EMAIL}
       WYZE_PASSWORD: ${WYZE_PASSWORD}
@@ -12,4 +14,4 @@ services:
     volumes:
       - "/etc/timezone:/etc/timezone:ro"
       - "/etc/localtime:/etc/localtime:ro"
-      - "./.garmin_tokens:/app/.garmin_tokens"
+      - "./logs:/var/log"

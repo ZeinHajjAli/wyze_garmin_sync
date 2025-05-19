@@ -1,12 +1,16 @@
 #!/usr/local/bin/python3
+import hashlib
 import math
 import os
+import time
+from getpass import getpass
+
+import garth
+import schedule
 from wyze_sdk import Client
 from wyze_sdk.errors import WyzeApiError
+
 from fit import FitEncoder_Weight
-import hashlib
-import garth
-from getpass import getpass
 
 WYZE_EMAIL = os.environ.get("WYZE_EMAIL")
 WYZE_PASSWORD = os.environ.get("WYZE_PASSWORD")
@@ -43,8 +47,11 @@ def upload_to_garmin(file_path):
             email = input("Enter Garmin email address: ")
             password = getpass("Enter Garmin password: ")
             try:
+                print("before login")
                 garth.login(email, password)
+                print("after login")
                 garth.save("./.garmin_tokens")
+                print("after save")
             except Exception as exc:
                 print(repr(exc))
                 exit()
@@ -142,7 +149,6 @@ def main():
                     else:
                         print("New measurement detected. Uploading file...")
                         # Upload the fit file to Garmin
-                        return
                         if upload_to_garmin(fitfile_path):
                             print("File uploaded successfully.")
                             # Update cksum.txt with the new checksum
@@ -154,7 +160,6 @@ def main():
                     print(
                         "No chksum detected. Uploading fit file and creating chksum..."
                     )
-                    return
                     # Upload the fit file to Garmin
                     if upload_to_garmin(fitfile_path):
                         print("File uploaded successfully.")
@@ -167,4 +172,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    print("RUNNING MAIN")
+    schedule.every().day.at("08:00").do(main)
+
+    while True:
+        schedule.run_pending()
+        time.sleep(1)

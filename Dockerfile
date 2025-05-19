@@ -1,24 +1,12 @@
-FROM python:3.11-slim
-
-RUN apt-get update && apt-get install -y cron
-
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+FROM python:3.11
 
 WORKDIR /app
 
-COPY pyproject.toml .
-COPY uv.lock .
-RUN uv sync --locked
+COPY requirements.txt .
+
+RUN pip install -r requirements.txt
 
 COPY ./scale.py .
 COPY ./fit.py .
 
-# Run immediately at startup
-RUN (uv run scale.py) &
-
-RUN echo "* * * * * uv run scale.py" > /etc/cron.d/scale_cron
-RUN chmod 0644 /etc/cron.d/scale_cron
-RUN crontab /etc/cron.d/scale_cron
-
-# Start the cron service in the background
-CMD ["cron", "-f"]
+CMD ["python", "-u", "scale.py"]
