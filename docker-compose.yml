@@ -1,6 +1,7 @@
 services:
   wyze-garmin-sync:
-    image: zeinhajjali/wyze-garmin-sync:1.0.0
+    # image: zeinhajjali/wyze-garmin-sync:latest
+    build: .
     restart: unless-stopped
     # stdin_open: true # docker run -i
     # tty: true # docker run -t
