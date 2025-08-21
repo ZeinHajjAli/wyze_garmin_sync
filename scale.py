@@ -4,9 +4,12 @@ import math
 import os
 import time
 from getpass import getpass
+import threading
+import logging
 
 import garth
 import schedule
+from flask import Flask, request, jsonify
 from wyze_sdk import Client
 from wyze_sdk.errors import WyzeApiError
 
@@ -18,6 +21,14 @@ WYZE_KEY_ID = os.environ.get("WYZE_KEY_ID")
 WYZE_API_KEY = os.environ.get("WYZE_API_KEY")
 GARMIN_USERNAME = os.environ.get("GARMIN_EMAIL")
 GARMIN_PASSWORD = os.environ.get("GARMIN_PASSWORD")
+WEBHOOK_PORT = int(os.environ.get("WEBHOOK_PORT", "5000"))
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Flask app for webhook
+app = Flask(__name__)
 
 
 def login_to_wyze():
@@ -116,66 +127,116 @@ def generate_fit_file(scale):
         fitfile.write(fit.getvalue())
 
 
-def main():
-    access_token = login_to_wyze()
-    if access_token:
-        client = Client(token=access_token)
-        for device in client.devices_list():
-            if device.type == "WyzeScale":
-                scale = client.scales.info(device_mac=device.mac)
-                print(f"Scale found with MAC {device.mac}. Latest record is:")
-                print(scale.latest_records)
-                print(f"Body Type: {scale.latest_records[0].body_type or 5}")
+def sync_data():
+    """Main sync function that can be called from webhook or schedule"""
+    try:
+        logger.info("Starting Wyze to Garmin sync...")
+        access_token = login_to_wyze()
+        if access_token:
+            client = Client(token=access_token)
+            for device in client.devices_list():
+                if device.type == "WyzeScale":
+                    scale = client.scales.info(device_mac=device.mac)
+                    logger.info(f"Scale found with MAC {device.mac}. Latest record is:")
+                    logger.info(scale.latest_records)
+                    logger.info(f"Body Type: {scale.latest_records[0].body_type or 5}")
 
-                print("Generating fit data...")
-                generate_fit_file(scale)
-                print("Fit data generated...")
+                    logger.info("Generating fit data...")
+                    generate_fit_file(scale)
+                    logger.info("Fit data generated...")
 
-                fitfile_path = "./wyze_scale.fit"
-                cksum_file_path = "./cksum.txt"
+                    fitfile_path = "./wyze_scale.fit"
+                    cksum_file_path = "./cksum.txt"
 
-                # Calculate checksum of the fit file
-                with open(fitfile_path, "rb") as fitfile:
-                    cksum = hashlib.md5(fitfile.read()).hexdigest()
+                    # Calculate checksum of the fit file
+                    with open(fitfile_path, "rb") as fitfile:
+                        cksum = hashlib.md5(fitfile.read()).hexdigest()
 
-                # Check if cksum.txt exists and read stored checksum
-                if os.path.exists(cksum_file_path):
-                    with open(cksum_file_path, "r") as cksum_file:
-                        stored_cksum = cksum_file.read().strip()
+                    # Check if cksum.txt exists and read stored checksum
+                    if os.path.exists(cksum_file_path):
+                        with open(cksum_file_path, "r") as cksum_file:
+                            stored_cksum = cksum_file.read().strip()
 
-                    # Compare calculated checksum with stored checksum
-                    if cksum == stored_cksum:
-                        print("No new measurement")
+                        # Compare calculated checksum with stored checksum
+                        if cksum == stored_cksum:
+                            logger.info("No new measurement")
+                            return {"status": "success", "message": "No new measurement to sync"}
+                        else:
+                            logger.info("New measurement detected. Uploading file...")
+                            # Upload the fit file to Garmin
+                            if upload_to_garmin(fitfile_path):
+                                logger.info("File uploaded successfully.")
+                                # Update cksum.txt with the new checksum
+                                with open(cksum_file_path, "w") as cksum_file:
+                                    cksum_file.write(cksum)
+                                return {"status": "success", "message": "New measurement synced successfully"}
+                            else:
+                                logger.error("File upload failed.")
+                                return {"status": "error", "message": "File upload failed"}
                     else:
-                        print("New measurement detected. Uploading file...")
+                        logger.info(
+                            "No chksum detected. Uploading fit file and creating chksum..."
+                        )
                         # Upload the fit file to Garmin
                         if upload_to_garmin(fitfile_path):
-                            print("File uploaded successfully.")
-                            # Update cksum.txt with the new checksum
+                            logger.info("File uploaded successfully.")
+                            # Create cksum.txt and write the checksum
                             with open(cksum_file_path, "w") as cksum_file:
                                 cksum_file.write(cksum)
+                            logger.info("cksum.txt created.")
+                            return {"status": "success", "message": "Initial sync completed successfully"}
                         else:
-                            print("File upload failed.")
-                else:
-                    print(
-                        "No chksum detected. Uploading fit file and creating chksum..."
-                    )
-                    # Upload the fit file to Garmin
-                    if upload_to_garmin(fitfile_path):
-                        print("File uploaded successfully.")
-                        # Create cksum.txt and write the checksum
-                        with open(cksum_file_path, "w") as cksum_file:
-                            cksum_file.write(cksum)
-                        print("cksum.txt created.")
-                    else:
-                        print("File upload failed.")
+                            logger.error("File upload failed.")
+                            return {"status": "error", "message": "File upload failed"}
+        else:
+            logger.error("Failed to login to Wyze")
+            return {"status": "error", "message": "Failed to login to Wyze"}
+    except Exception as e:
+        logger.error(f"Sync failed with error: {str(e)}")
+        return {"status": "error", "message": f"Sync failed: {str(e)}"}
+
+def main():
+    """Legacy main function for backward compatibility"""
+    result = sync_data()
+    print(result["message"])
 
 
-if __name__ == "__main__":
-    print("RUNNING MAIN")
-    main()
-    schedule.every().day.at("08:00").do(main)
+@app.route('/webhook/sync', methods=['POST', 'GET'])
+def webhook_sync():
+    """Webhook endpoint to trigger sync on demand"""
+    try:
+        logger.info("Webhook triggered - starting sync...")
+        result = sync_data()
+        return jsonify(result), 200 if result["status"] == "success" else 500
+    except Exception as e:
+        logger.error(f"Webhook error: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({"status": "healthy", "message": "Wyze Garmin Sync is running"}), 200
+
+def run_scheduler():
+    """Run the scheduled tasks in a separate thread"""
+    schedule.every().day.at("08:00").do(sync_data)
+    
     while True:
         schedule.run_pending()
-        time.sleep(1)
+        time.sleep(60)  # Check every minute
+
+if __name__ == "__main__":
+    logger.info("Starting Wyze Garmin Sync with webhook support...")
+    
+    # Run initial sync
+    logger.info("Running initial sync...")
+    sync_data()
+    
+    # Start scheduler in background thread
+    scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
+    scheduler_thread.start()
+    logger.info("Background scheduler started")
+    
+    # Start Flask app
+    logger.info(f"Starting webhook server on port {WEBHOOK_PORT}...")
+    app.run(host='0.0.0.0', port=WEBHOOK_PORT, debug=False)

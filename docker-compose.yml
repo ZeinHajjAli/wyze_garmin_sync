@@ -5,6 +5,8 @@ services:
     restart: unless-stopped
     # stdin_open: true # docker run -i
     # tty: true # docker run -t
+    ports:
+      - "5000:5000"  # Expose webhook port
     environment:
       WYZE_EMAIL: ${WYZE_EMAIL}
       WYZE_PASSWORD: ${WYZE_PASSWORD}
@@ -12,7 +14,7 @@ services:
       WYZE_API_KEY: ${WYZE_API_KEY}
       GARMIN_EMAIL: ${GARMIN_EMAIL}
       GARMIN_PASSWORD: ${GARMIN_PASSWORD}
+      WEBHOOK_PORT: 5000
     volumes:
       - "/etc/timezone:/etc/timezone:ro"
       - "/etc/localtime:/etc/localtime:ro"
-      - "./logs:/var/log"
